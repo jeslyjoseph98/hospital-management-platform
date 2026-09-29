@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hms.patient.mapper.PatientMapper">
+
+  <resultMap id="patientResultMap" type="com.hms.patient.model.Patient">
+    <id property="id" column="id"/>
+    <result property="patientCode" column="patient_code"/>
+    <result property="firstName" column="first_name"/>
+    <result property="lastName" column="last_name"/>
+    <result property="dateOfBirth" column="date_of_birth"/>
+    <result property="gender" column="gender"/>
+    <result property="phone" column="phone"/>
+    <result property="email" column="email"/>
+    <result property="passwordHash" column="password_hash"/>
+    <result property="address" column="address"/>
+    <result property="active" column="is_active"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+  </resultMap>
+
+  <sql id="columns">
+    id, patient_code, first_name, last_name, date_of_birth, gender, phone, email,
+    password_hash, address, is_active, created_at, updated_at
+  </sql>
+
+  <select id="findByPhone" resultMap="patientResultMap">
+    SELECT <include refid="columns"/> FROM patients WHERE phone = #{phone}
+  </select>
+
+  <select id="findByEmail" resultMap="patientResultMap">
+    SELECT <include refid="columns"/> FROM patients WHERE email = #{email}
+  </select>
+
+  <select id="findById" resultMap="patientResultMap">
+    SELECT <include refid="columns"/> FROM patients WHERE id = #{id}
+  </select>
+
+  <insert id="insert" parameterType="com.hms.patient.model.Patient" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO patients (first_name, last_name, date_of_birth, gender, phone, email, password_hash, address, is_active)
+    VALUES (#{firstName}, #{lastName}, #{dateOfBirth}, #{gender}, #{phone}, #{email}, #{passwordHash}, #{address}, 1)
+  </insert>
+
+  <update id="updatePatientCode">
+    UPDATE patients SET patient_code = #{patientCode} WHERE id = #{id}
+  </update>
+
+</mapper>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hms.appointment.mapper.AppointmentMapper">
+
+  <resultMap id="appointmentResultMap" type="com.hms.appointment.model.Appointment">
+    <id property="id" column="id"/>
+    <result property="appointmentCode" column="appointment_code"/>
+    <result property="patientId" column="patient_id"/>
+    <result property="doctorId" column="doctor_id"/>
+    <result property="appointmentDate" column="appointment_date"/>
+    <result property="tokenNumber" column="token_number"/>
+    <result property="reportingTime" column="reporting_time"/>
+    <result property="reason" column="reason"/>
+    <result property="status" column="status"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+  </resultMap>
+
+  <sql id="columns">
+    id, appointment_code, patient_id, doctor_id, appointment_date, token_number,
+    reporting_time, reason, status, created_at, updated_at
+  </sql>
+
+  <select id="findActiveBooking" resultMap="appointmentResultMap">
+    SELECT <include refid="columns"/> FROM appointments
+    WHERE patient_id = #{patientId} AND doctor_id = #{doctorId} AND appointment_date = #{date} AND status = 'BOOKED'
+  </select>
+
+  <insert id="insert" parameterType="com.hms.appointment.model.Appointment" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO appointments (patient_id, doctor_id, appointment_date, token_number, reporting_time, reason, status)
+    VALUES (#{patientId}, #{doctorId}, #{appointmentDate}, #{tokenNumber}, #{reportingTime}, #{reason}, #{status})
+  </insert>
+
+  <update id="updateAppointmentCode">
+    UPDATE appointments SET appointment_code = #{appointmentCode} WHERE id = #{id}
+  </update>
+
+  <select id="findByPatient" resultMap="appointmentResultMap">
+    SELECT <include refid="columns"/> FROM appointments
+    WHERE patient_id = #{patientId}
+    <if test="upcoming">AND appointment_date &gt;= CURDATE() ORDER BY appointment_date ASC, token_number ASC</if>
+    <if test="!upcoming">AND appointment_date &lt; CURDATE() ORDER BY appointment_date DESC, token_number ASC</if>
+  </select>
+
+  <select id="findByIdAndPatient" resultMap="appointmentResultMap">
+    SELECT <include refid="columns"/> FROM appointments WHERE id = #{id} AND patient_id = #{patientId}
+  </select>
+
+</mapper>
