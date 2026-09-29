@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hms.notification.mapper.NotificationMapper">
+
+  <resultMap id="notificationResultMap" type="com.hms.notification.model.Notification">
+    <id property="id" column="id"/>
+    <result property="patientId" column="patient_id"/>
+    <result property="title" column="title"/>
+    <result property="message" column="message"/>
+    <result property="appointmentId" column="appointment_id"/>
+    <result property="read" column="is_read"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="readAt" column="read_at"/>
+  </resultMap>
+
+  <sql id="columns">
+    id, patient_id, title, message, appointment_id, is_read, created_at, read_at
+  </sql>
+
+  <insert id="insert" parameterType="com.hms.notification.model.Notification" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO notifications (patient_id, title, message, appointment_id, is_read)
+    VALUES (#{patientId}, #{title}, #{message}, #{appointmentId}, 0)
+  </insert>
+
+  <select id="findByPatient" resultMap="notificationResultMap">
+    SELECT <include refid="columns"/> FROM notifications
+    WHERE patient_id = #{patientId}
+    <if test="unreadOnly">AND is_read = 0</if>
+    ORDER BY created_at DESC
+    LIMIT #{limit} OFFSET #{offset}
+  </select>
+
+  <select id="countByPatient" resultType="long">
+    SELECT COUNT(*) FROM notifications WHERE patient_id = #{patientId}
+    <if test="unreadOnly">AND is_read = 0</if>
+  </select>
+
+  <select id="countUnread" resultType="int">
+    SELECT COUNT(*) FROM notifications WHERE patient_id = #{patientId} AND is_read = 0
+  </select>
+
+  <select id="findByIdAndPatient" resultMap="notificationResultMap">
+    SELECT <include refid="columns"/> FROM notifications WHERE id = #{id} AND patient_id = #{patientId}
+  </select>
+
+  <update id="markRead">
+    UPDATE notifications SET is_read = 1, read_at = NOW() WHERE id = #{id}
+  </update>
+
+</mapper>

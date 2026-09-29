@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hms.department.mapper.DepartmentMapper">
+
+  <resultMap id="departmentResultMap" type="com.hms.department.model.Department">
+    <id property="id" column="id"/>
+    <result property="deptName" column="dept_name"/>
+    <result property="description" column="description"/>
+    <result property="active" column="is_active"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+  </resultMap>
+
+  <select id="findActive" resultMap="departmentResultMap">
+    SELECT id, dept_name, description, is_active, created_at, updated_at
+    FROM departments WHERE is_active = 1 ORDER BY dept_name
+  </select>
+
+  <select id="findActiveById" resultMap="departmentResultMap">
+    SELECT id, dept_name, description, is_active, created_at, updated_at
+    FROM departments WHERE id = #{id} AND is_active = 1
+  </select>
+
+  <select id="findById" resultMap="departmentResultMap">
+    SELECT id, dept_name, description, is_active, created_at, updated_at
+    FROM departments WHERE id = #{id}
+  </select>
+
+</mapper>
