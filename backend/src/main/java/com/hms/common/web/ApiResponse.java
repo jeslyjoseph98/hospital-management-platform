@@ -38,6 +38,11 @@ public class ApiResponse<T> {
         return new ApiResponse<>(false, null, message, errorCode, fieldErrors);
     }
 
+    /** For business conflicts that carry a payload alongside the error, e.g. `{ "affected": [...] }`. */
+    public static <T> ApiResponse<T> errorWithData(String errorCode, String message, T data) {
+        return new ApiResponse<>(false, data, message, errorCode, null);
+    }
+
     public record FieldError(String field, String message) {
     }
 }

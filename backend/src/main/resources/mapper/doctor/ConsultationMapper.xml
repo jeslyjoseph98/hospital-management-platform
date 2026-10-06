@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hms.doctor.mapper.ConsultationMapper">
+
+  <resultMap id="consultationResultMap" type="com.hms.doctor.model.Consultation">
+    <id property="id" column="id"/>
+    <result property="appointmentId" column="appointment_id"/>
+    <result property="patientId" column="patient_id"/>
+    <result property="doctorId" column="doctor_id"/>
+    <result property="chiefComplaint" column="chief_complaint"/>
+    <result property="symptoms" column="symptoms"/>
+    <result property="temperatureC" column="temperature_c"/>
+    <result property="pulseBpm" column="pulse_bpm"/>
+    <result property="bpSystolic" column="bp_systolic"/>
+    <result property="bpDiastolic" column="bp_diastolic"/>
+    <result property="weightKg" column="weight_kg"/>
+    <result property="diagnosis" column="diagnosis"/>
+    <result property="doctorNotes" column="doctor_notes"/>
+    <result property="advice" column="advice"/>
+    <result property="followUpDate" column="follow_up_date"/>
+    <result property="status" column="status"/>
+    <result property="completedAt" column="completed_at"/>
+    <result property="dispenseStatus" column="dispense_status"/>
+    <result property="dispensedBy" column="dispensed_by"/>
+    <result property="dispensedAt" column="dispensed_at"/>
+    <result property="dispenseRemarks" column="dispense_remarks"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+  </resultMap>
+
+  <resultMap id="itemResultMap" type="com.hms.doctor.model.PrescriptionItem">
+    <id property="id" column="id"/>
+    <result property="consultationId" column="consultation_id"/>
+    <result property="medicineName" column="medicine_name"/>
+    <result property="strength" column="strength"/>
+    <result property="dosagePattern" column="dosage_pattern"/>
+    <result property="timing" column="timing"/>
+    <result property="durationDays" column="duration_days"/>
+    <result property="instructions" column="instructions"/>
+    <result property="displayOrder" column="display_order"/>
+  </resultMap>
+
+  <!-- Records (no setters): MyBatis needs an explicit <constructor> binding by javaType. -->
+  <resultMap id="patientConsultationRowMap" type="com.hms.doctor.mapper.ConsultationMapper$PatientConsultationRow">
+    <constructor>
+      <idArg column="consultationId" javaType="Long"/>
+      <arg column="date" javaType="java.time.LocalDate"/>
+      <arg column="doctorName" javaType="String"/>
+      <arg column="diagnosis" javaType="String"/>
+      <arg column="advice" javaType="String"/>
+      <arg column="followUpDate" javaType="java.time.LocalDate"/>
+      <arg column="temperatureC" javaType="java.math.BigDecimal"/>
+      <arg column="pulseBpm" javaType="Integer"/>
+      <arg column="bpSystolic" javaType="Integer"/>
+      <arg column="bpDiastolic" javaType="Integer"/>
+      <arg column="weightKg" javaType="java.math.BigDecimal"/>
+      <arg column="dispenseStatus" javaType="String"/>
+      <arg column="dispensedAt" javaType="java.time.LocalDateTime"/>
+      <arg column="dispenseRemarks" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="pastVisitRowMap" type="com.hms.doctor.mapper.ConsultationMapper$PastVisitRow">
+    <constructor>
+      <idArg column="consultationId" javaType="Long"/>
+      <arg column="date" javaType="java.time.LocalDate"/>
+      <arg column="doctorName" javaType="String"/>
+      <arg column="departmentName" javaType="String"/>
+      <arg column="diagnosis" javaType="String"/>
+      <arg column="advice" javaType="String"/>
+      <arg column="doctorNotes" javaType="String"/>
+      <arg column="dispenseStatus" javaType="String"/>
+      <arg column="dispensedAt" javaType="java.time.LocalDateTime"/>
+      <arg column="dispenseRemarks" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <sql id="columns">
+    id, appointment_id, patient_id, doctor_id, chief_complaint, symptoms, temperature_c,
+    pulse_bpm, bp_systolic, bp_diastolic, weight_kg, diagnosis, doctor_notes, advice,
+    follow_up_date, status, completed_at, dispense_status, dispensed_by, dispensed_at,
+    dispense_remarks, created_at, updated_at
+  </sql>
+
+  <select id="findByAppointmentId" resultMap="consultationResultMap">
+    SELECT <include refid="columns"/> FROM consultations WHERE appointment_id = #{appointmentId}
+  </select>
+
+  <insert id="insert" parameterType="com.hms.doctor.model.Consultation" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO consultations (appointment_id, patient_id, doctor_id, chief_complaint, symptoms,
+                                temperature_c, pulse_bpm, bp_systolic, bp_diastolic, weight_kg,
+                                diagnosis, doctor_notes, advice, follow_up_date, status)
+    VALUES (#{appointmentId}, #{patientId}, #{doctorId}, #{chiefComplaint}, #{symptoms},
+            #{temperatureC}, #{pulseBpm}, #{bpSystolic}, #{bpDiastolic}, #{weightKg},
+            #{diagnosis}, #{doctorNotes}, #{advice}, #{followUpDate}, #{status})
+  </insert>
+
+  <update id="update" parameterType="com.hms.doctor.model.Consultation">
+    UPDATE consultations SET
+      chief_complaint = #{chiefComplaint}, symptoms = #{symptoms}, temperature_c = #{temperatureC},
+      pulse_bpm = #{pulseBpm}, bp_systolic = #{bpSystolic}, bp_diastolic = #{bpDiastolic},
+      weight_kg = #{weightKg}, diagnosis = #{diagnosis}, doctor_notes = #{doctorNotes},
+      advice = #{advice}, follow_up_date = #{followUpDate}
+    WHERE id = #{id}
+  </update>
+
+  <update id="complete">
+    UPDATE consultations SET status = 'COMPLETED', completed_at = #{completedAt}, dispense_status = #{dispenseStatus}
+    WHERE id = #{id}
+  </update>
+
+  <select id="findItems" resultMap="itemResultMap">
+    SELECT id, consultation_id, medicine_name, strength, dosage_pattern, timing, duration_days,
+           instructions, display_order
+    FROM prescription_items WHERE consultation_id = #{consultationId} ORDER BY display_order
+  </select>
+
+  <delete id="deleteItems">
+    DELETE FROM prescription_items WHERE consultation_id = #{consultationId}
+  </delete>
+
+  <insert id="insertItem" parameterType="com.hms.doctor.model.PrescriptionItem" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO prescription_items (consultation_id, medicine_name, strength, dosage_pattern, timing,
+                                     duration_days, instructions, display_order)
+    VALUES (#{consultationId}, #{medicineName}, #{strength}, #{dosagePattern}, #{timing},
+            #{durationDays}, #{instructions}, #{displayOrder})
+  </insert>
+
+  <select id="findPatientView" resultMap="patientConsultationRowMap">
+    SELECT c.id AS consultationId, a.appointment_date AS date, doc.full_name AS doctorName,
+           c.diagnosis AS diagnosis, c.advice AS advice, c.follow_up_date AS followUpDate,
+           c.temperature_c AS temperatureC, c.pulse_bpm AS pulseBpm, c.bp_systolic AS bpSystolic,
+           c.bp_diastolic AS bpDiastolic, c.weight_kg AS weightKg,
+           c.dispense_status AS dispenseStatus, c.dispensed_at AS dispensedAt,
+           c.dispense_remarks AS dispenseRemarks
+    FROM consultations c
+    JOIN appointments a ON a.id = c.appointment_id
+    JOIN doctors doc ON doc.id = c.doctor_id
+    WHERE c.appointment_id = #{appointmentId} AND c.status = 'COMPLETED'
+  </select>
+
+  <select id="findPastVisitsByPatient" resultMap="pastVisitRowMap">
+    SELECT c.id AS consultationId, a.appointment_date AS date, doc.full_name AS doctorName,
+           dept.dept_name AS departmentName, c.diagnosis AS diagnosis, c.advice AS advice,
+           c.doctor_notes AS doctorNotes, c.dispense_status AS dispenseStatus,
+           c.dispensed_at AS dispensedAt, c.dispense_remarks AS dispenseRemarks
+    FROM consultations c
+    JOIN appointments a ON a.id = c.appointment_id
+    JOIN doctors doc ON doc.id = c.doctor_id
+    JOIN departments dept ON dept.id = doc.department_id
+    WHERE c.patient_id = #{patientId} AND c.status = 'COMPLETED'
+    ORDER BY a.appointment_date DESC, c.id DESC
+  </select>
+
+</mapper>

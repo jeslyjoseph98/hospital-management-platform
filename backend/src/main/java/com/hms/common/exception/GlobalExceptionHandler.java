@@ -2,6 +2,8 @@ package com.hms.common.exception;
 
 import com.hms.common.web.ApiResponse;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -13,10 +15,14 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
     @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<ApiResponse<Void>> handleBusiness(BusinessException ex) {
-        return ResponseEntity.status(ex.getErrorCode().getHttpStatus())
-                .body(ApiResponse.error(ex.getErrorCode().name(), ex.getMessage()));
+    public ResponseEntity<ApiResponse<Object>> handleBusiness(BusinessException ex) {
+        ApiResponse<Object> body = ex.getData() != null
+                ? ApiResponse.errorWithData(ex.getErrorCode().name(), ex.getMessage(), ex.getData())
+                : ApiResponse.errorWithData(ex.getErrorCode().name(), ex.getMessage(), null);
+        return ResponseEntity.status(ex.getErrorCode().getHttpStatus()).body(body);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -37,11 +43,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleAccessDenied(AccessDeniedException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("ACCESS_DENIED", "Access denied"));
+                .body(ApiResponse.error("AUTH_FORBIDDEN", "Access denied"));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleUnexpected(Exception ex) {
+        log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error("INTERNAL_ERROR", "Something went wrong"));
     }

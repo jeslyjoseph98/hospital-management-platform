@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hms.doctor.mapper.DoctorAppointmentMapper">
+
+  <resultMap id="appointmentResultMap" type="com.hms.appointment.model.Appointment">
+    <id property="id" column="id"/>
+    <result property="appointmentCode" column="appointment_code"/>
+    <result property="patientId" column="patient_id"/>
+    <result property="doctorId" column="doctor_id"/>
+    <result property="appointmentDate" column="appointment_date"/>
+    <result property="tokenNumber" column="token_number"/>
+    <result property="reportingTime" column="reporting_time"/>
+    <result property="reason" column="reason"/>
+    <result property="status" column="status"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+  </resultMap>
+
+  <!-- Records (no setters): MyBatis needs an explicit <constructor> binding by javaType. -->
+  <resultMap id="appointmentItemMap" type="com.hms.doctor.dto.TodayAppointmentsResponse$AppointmentItem">
+    <constructor>
+      <idArg column="appointmentId" javaType="Long"/>
+      <arg column="tokenNumber" javaType="_int"/>
+      <arg column="reportingTime" javaType="java.time.LocalTime"/>
+      <arg column="patientId" javaType="Long"/>
+      <arg column="patientName" javaType="String"/>
+      <arg column="patientCode" javaType="String"/>
+      <arg column="age" javaType="_int"/>
+      <arg column="gender" javaType="String"/>
+      <arg column="status" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="patientBriefMap" type="com.hms.doctor.dto.PatientBrief">
+    <constructor>
+      <idArg column="patientId" javaType="Long"/>
+      <arg column="patientCode" javaType="String"/>
+      <arg column="fullName" javaType="String"/>
+      <arg column="age" javaType="_int"/>
+      <arg column="gender" javaType="String"/>
+      <arg column="phone" javaType="String"/>
+      <arg column="address" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <sql id="appointmentColumns">
+    id, appointment_code, patient_id, doctor_id, appointment_date, token_number,
+    reporting_time, reason, status, created_at, updated_at
+  </sql>
+
+  <!-- DRP-R3: status is BOOKED / IN_PROGRESS (a consultation row exists but isn't completed) / COMPLETED. -->
+  <select id="findToday" resultMap="appointmentItemMap">
+    SELECT a.id AS appointmentId, a.token_number AS tokenNumber, a.reporting_time AS reportingTime,
+           p.id AS patientId, u.full_name AS patientName, p.patient_code AS patientCode,
+           TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) AS age, p.gender AS gender,
+           CASE WHEN a.status = 'COMPLETED' THEN 'COMPLETED'
+                WHEN c.id IS NOT NULL THEN 'IN_PROGRESS'
+                ELSE 'BOOKED' END AS status
+    FROM appointments a
+    JOIN patients p ON p.id = a.patient_id
+    JOIN users u ON u.id = p.user_id
+    LEFT JOIN consultations c ON c.appointment_id = a.id AND c.status = 'IN_PROGRESS'
+    WHERE a.doctor_id = #{doctorId} AND a.appointment_date = #{date}
+    ORDER BY a.token_number
+  </select>
+
+  <select id="findByIdAndDoctor" resultMap="appointmentResultMap">
+    SELECT <include refid="appointmentColumns"/> FROM appointments WHERE id = #{id} AND doctor_id = #{doctorId}
+  </select>
+
+  <update id="completeAppointment">
+    UPDATE appointments SET status = 'COMPLETED' WHERE id = #{id}
+  </update>
+
+  <select id="findPatientBrief" resultMap="patientBriefMap">
+    SELECT p.id AS patientId, p.patient_code AS patientCode, u.full_name AS fullName,
+           TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) AS age, p.gender AS gender,
+           u.phone AS phone, p.address AS address
+    FROM patients p JOIN users u ON u.id = p.user_id
+    WHERE p.id = #{patientId}
+  </select>
+
+  <select id="existsAppointmentForPatientAndDoctor" resultType="boolean">
+    SELECT COUNT(*) > 0 FROM appointments WHERE patient_id = #{patientId} AND doctor_id = #{doctorId}
+  </select>
+
+</mapper>

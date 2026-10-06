@@ -109,10 +109,13 @@ class AppointmentBookingConcurrencyTest {
 
     private Long insertPatient(String phone) {
         jdbcTemplate.update(
-                "INSERT INTO patients (first_name, last_name, date_of_birth, gender, phone, password_hash, is_active) "
-                        + "VALUES (?, ?, ?, ?, ?, ?, 1)",
-                "Test", "Patient", LocalDate.of(1990, 1, 1), "MALE", phone, passwordEncoder.encode("password1"));
-        Long id = jdbcTemplate.queryForObject("SELECT id FROM patients WHERE phone = ?", Long.class, phone);
+                "INSERT INTO users (full_name, phone, password_hash, role, is_active) VALUES (?, ?, ?, 'PATIENT', 1)",
+                "Test Patient", phone, passwordEncoder.encode("password1"));
+        Long userId = jdbcTemplate.queryForObject("SELECT id FROM users WHERE phone = ?", Long.class, phone);
+        jdbcTemplate.update(
+                "INSERT INTO patients (user_id, date_of_birth, gender) VALUES (?, ?, ?)",
+                userId, LocalDate.of(1990, 1, 1), "MALE");
+        Long id = jdbcTemplate.queryForObject("SELECT id FROM patients WHERE user_id = ?", Long.class, userId);
         jdbcTemplate.update("UPDATE patients SET patient_code = ? WHERE id = ?",
                 "PAT" + String.format("%06d", id), id);
         return id;

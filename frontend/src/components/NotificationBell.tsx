@@ -31,7 +31,7 @@ export function NotificationBell() {
 
   return (
     <Link
-      href="/notifications"
+      href="/patient/notifications"
       className="relative flex h-10 w-10 items-center justify-center rounded-full bg-white ring-1 ring-violet-100 hover:ring-violet-300 transition"
       aria-label="Notifications"
     >

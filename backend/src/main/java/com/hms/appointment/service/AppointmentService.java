@@ -13,6 +13,8 @@ import com.hms.department.model.Doctor;
 import com.hms.department.model.DoctorAvailability;
 import com.hms.department.service.DepartmentService;
 import com.hms.department.service.DoctorService;
+import com.hms.auth.mapper.UserMapper;
+import com.hms.auth.model.User;
 import com.hms.notification.service.NotificationService;
 import com.hms.patient.mapper.PatientMapper;
 import com.hms.patient.model.Patient;
@@ -36,16 +38,18 @@ public class AppointmentService {
     private final DoctorService doctorService;
     private final DepartmentService departmentService;
     private final PatientMapper patientMapper;
+    private final UserMapper userMapper;
     private final NotificationService notificationService;
 
     public AppointmentService(AppointmentMapper appointmentMapper, DoctorMapper doctorMapper,
                                DoctorService doctorService, DepartmentService departmentService,
-                               PatientMapper patientMapper, NotificationService notificationService) {
+                               PatientMapper patientMapper, UserMapper userMapper, NotificationService notificationService) {
         this.appointmentMapper = appointmentMapper;
         this.doctorMapper = doctorMapper;
         this.doctorService = doctorService;
         this.departmentService = departmentService;
         this.patientMapper = patientMapper;
+        this.userMapper = userMapper;
         this.notificationService = notificationService;
     }
 
@@ -107,8 +111,10 @@ public class AppointmentService {
 
         Patient patient = patientMapper.findById(patientId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Patient not found"));
+        User patientUser = userMapper.findById(patient.getUserId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Patient not found"));
         Department department = departmentService.getById(locked.getDepartmentId());
-        String patientName = fullName(patient);
+        String patientName = patientUser.getFullName();
 
         notificationService.notifyBookingSuccess(patientId, appointment.getId(), "Booking successful",
                 "Your appointment with " + locked.getFullName() + " (" + department.getDeptName() + ") on "
@@ -149,11 +155,5 @@ public class AppointmentService {
         long windowMinutes = Duration.between(availability.getStartTime(), availability.getEndTime()).toMinutes();
         long minutesPerPatient = Math.max(1, windowMinutes / dailyLimit);
         return availability.getStartTime().plusMinutes((long) (tokenNumber - 1) * minutesPerPatient);
-    }
-
-    private String fullName(Patient patient) {
-        return patient.getLastName() == null || patient.getLastName().isBlank()
-                ? patient.getFirstName()
-                : patient.getFirstName() + " " + patient.getLastName();
     }
 }

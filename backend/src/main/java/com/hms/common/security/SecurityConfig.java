@@ -48,13 +48,29 @@ public class SecurityConfig {
                         .requestMatchers("/api/v1/auth/register", "/api/v1/auth/login").permitAll()
                         .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .anyRequest().authenticated())
-                .exceptionHandling(eh -> eh.authenticationEntryPoint((request, response, authException) -> {
-                    response.setStatus(HttpStatus.UNAUTHORIZED.value());
-                    response.setContentType("application/json");
-                    response.getWriter().write(objectMapper.writeValueAsString(
-                            ApiResponse.error("AUTH_INVALID_CREDENTIALS", "Missing or invalid token")));
-                }))
+                        // /auth/me is used by both roles to restore a session on page refresh.
+                        .requestMatchers("/api/v1/auth/me").authenticated()
+                        // LOG-R4: everything under /admin requires role ADMIN.
+                        .requestMatchers("/api/v1/admin/**").hasAuthority("ROLE_ADMIN")
+                        // LOG-R4: everything under /doctor requires role DOCTOR.
+                        .requestMatchers("/api/v1/doctor/**").hasAuthority("ROLE_DOCTOR")
+                        // LOG-R4: everything under /pharmacy requires role PHARMACIST.
+                        .requestMatchers("/api/v1/pharmacy/**").hasAuthority("ROLE_PHARMACIST")
+                        // LOG-R4: every other patient-facing API requires role PATIENT.
+                        .anyRequest().hasAuthority("ROLE_PATIENT"))
+                .exceptionHandling(eh -> eh
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+                            response.setContentType("application/json");
+                            response.getWriter().write(objectMapper.writeValueAsString(
+                                    ApiResponse.error("AUTH_INVALID_CREDENTIALS", "Missing or invalid token")));
+                        })
+                        .accessDeniedHandler((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpStatus.FORBIDDEN.value());
+                            response.setContentType("application/json");
+                            response.getWriter().write(objectMapper.writeValueAsString(
+                                    ApiResponse.error("AUTH_FORBIDDEN", "You do not have permission to perform this action")));
+                        }))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }

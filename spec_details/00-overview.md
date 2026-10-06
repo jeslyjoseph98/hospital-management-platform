@@ -1,46 +1,62 @@
 # HMS Appointment Booking — 00 Overview
 
-Version: 1.0
+Version: 2.2 (pharmacy added)
 
 ## 1. Scope
 
-Patients register, log in, pick a department, pick a doctor, pick a date the doctor is available, and book. Each doctor takes a maximum of 50 appointments per day. After booking, the patient gets a token number and an estimated reporting time, and sees a "Booking successful" notification.
+One portal for everyone. Users register choosing a role (Patient, Doctor, Pharmacist or Admin) and log in on the same page; the screens shown after login depend on the role. Admins maintain departments and doctors (name, qualification, consultation fee, timings, daily limit). Doctors see today's appointments, open patient details, and record consultation details and prescriptions. Pharmacy staff see those prescriptions, give the medicines and mark them as done. Patients pick a department, pick a doctor, pick a date the doctor is available, and book. Each doctor takes a maximum of 50 appointments per day. After booking, the patient gets a token number and an estimated reporting time, and sees a "Booking successful" notification.
 
 In scope:
-- Patient registration and login
+- Common registration (role chosen at sign-up) and common login
+- Role-based screens: Patient → booking screens, Admin → doctor management screens, Doctor → today's appointments and consultation
+- Doctor: today's appointments, patient details and history, consultation details, prescription
+- Pharmacist: pending prescriptions, give medicine, mark as done
 - Departments and doctors (doctors listed by department)
 - Doctor availability (weekly days and time window)
 - Appointment booking with a daily limit of 50 per doctor
 - Token number for consultation
 - Booking success notification
+- Admin: department management, doctor management (profile, qualification, consultation details, weekly timings)
 
-Out of scope for now: cancellation/rescheduling, doctor login, admin screens, consultation, prescriptions, SMS/email.
+Out of scope for now: cancellation/rescheduling, lab tests, billing, medicine stock, SMS/email.
 
-Departments, doctors and availability are loaded with a SQL seed script (`V2__seed_departments_doctors.sql`). No admin UI in v1.
+No seed data is needed. Admins register through the portal with the admin registration code; departments, doctors and timings are entered through the admin screens.
 
 ## 2. Spec Files
 
 | # | File | Depends on |
 |---|------|------------|
-| 01 | 01-patient-registration-login.md | — |
+| 01 | 01-registration-login-roles.md | — |
 | 02 | 02-department-doctor-availability.md | — |
 | 03 | 03-appointment-booking.md | 01, 02 |
 | 04 | 04-booking-notification.md | 03 |
+| 05 | 05-admin-doctor-management.md | 01, 02, 03 |
+| 06 | 06-doctor-portal-consultation.md | 01, 02, 03, 05 |
+| 07 | 07-pharmacy-dispensing.md | 01, 06 |
 
 ## 3. User Flow
 
 ```
-Register ──► Login ──► Select Department ──► Select Doctor ──► Select Date
-                                                                   │
-                        (dates show "Available: 12 of 50" or "Fully booked")
-                                                                   ▼
-                                                           Confirm Booking
-                                                                   │
-                                  ┌────────────────────────────────┴───────────────┐
-                                  ▼                                                ▼
-                    Success: token no. + reporting time               Fail: "Fully booked" /
-                    + "Booking successful" notification                "Already booked" etc.
+                     Register (choose role) ──► Login (same page for all)
+                                                      │
+              ┌──────────────────────────── role? ────┼───────────────────────────┐
+              ▼                                       ▼                           ▼
+          PATIENT                                  DOCTOR                       ADMIN
+  Department ──► Doctor ──► Date            Today's appointments         Departments
+         ──► Confirm booking                 (token order)                Add / edit doctors
+              │                                   │                       (profile, qualification,
+  Token no. + reporting time               Open patient: details           fee, daily limit, timings)
+  + "Booking successful"                   + past visits                  Bookings per doctor
+              │                                   │
+  View consultation &                      Consultation details
+  prescription after visit  ◄────────────  + prescription ──► Complete
+                                                  │
+                                                  ▼
+                                     PHARMACIST: pending prescriptions
+                                     ──► give medicine ──► Mark as done
 ```
+
+Doctor login: admin adds the doctor first; the doctor then registers with role Doctor using the same registration number and phone.
 
 ## 4. Technology
 
@@ -76,5 +92,6 @@ Error:
 |------|------|
 | 400 | Validation failure |
 | 401 | Not logged in / token expired |
+| 403 | Logged in but wrong role (e.g. patient calling an `/admin` or `/doctor` API) |
 | 404 | Record not found |
 | 409 | Business rule failed (fully booked, already booked, duplicate registration) |

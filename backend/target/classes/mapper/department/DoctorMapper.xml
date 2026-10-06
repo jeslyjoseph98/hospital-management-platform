@@ -4,14 +4,23 @@
 
   <resultMap id="doctorResultMap" type="com.hms.department.model.Doctor">
     <id property="id" column="id"/>
+    <result property="userId" column="user_id"/>
     <result property="departmentId" column="department_id"/>
     <result property="fullName" column="full_name"/>
     <result property="qualification" column="qualification"/>
+    <result property="specialization" column="specialization"/>
+    <result property="registrationNumber" column="registration_number"/>
     <result property="experienceYears" column="experience_years"/>
+    <result property="phone" column="phone"/>
+    <result property="email" column="email"/>
+    <result property="about" column="about"/>
+    <result property="consultationFee" column="consultation_fee"/>
     <result property="dailyLimit" column="daily_limit"/>
     <result property="active" column="is_active"/>
     <result property="createdAt" column="created_at"/>
     <result property="updatedAt" column="updated_at"/>
+    <result property="createdBy" column="created_by"/>
+    <result property="updatedBy" column="updated_by"/>
   </resultMap>
 
   <resultMap id="availabilityResultMap" type="com.hms.department.model.DoctorAvailability">
@@ -23,18 +32,24 @@
     <result property="active" column="is_active"/>
   </resultMap>
 
+  <sql id="doctorColumns">
+    id, user_id, department_id, full_name, qualification, specialization, registration_number,
+    experience_years, phone, email, about, consultation_fee, daily_limit, is_active,
+    created_at, updated_at, created_by, updated_by
+  </sql>
+
   <select id="findActiveByDepartment" resultMap="doctorResultMap">
-    SELECT id, department_id, full_name, qualification, experience_years, daily_limit, is_active, created_at, updated_at
+    SELECT <include refid="doctorColumns"/>
     FROM doctors WHERE department_id = #{departmentId} AND is_active = 1 ORDER BY full_name
   </select>
 
   <select id="findActiveById" resultMap="doctorResultMap">
-    SELECT id, department_id, full_name, qualification, experience_years, daily_limit, is_active, created_at, updated_at
+    SELECT <include refid="doctorColumns"/>
     FROM doctors WHERE id = #{id} AND is_active = 1
   </select>
 
   <select id="lockForBooking" resultMap="doctorResultMap">
-    SELECT id, department_id, full_name, qualification, experience_years, daily_limit, is_active, created_at, updated_at
+    SELECT <include refid="doctorColumns"/>
     FROM doctors WHERE id = #{id} FOR UPDATE
   </select>
 
@@ -48,9 +63,24 @@
     FROM doctor_availability WHERE doctor_id = #{doctorId} AND day_of_week = #{dayOfWeek} AND is_active = 1
   </select>
 
+  <!-- spec 03 APT-R7 / spec 06 §4: COMPLETED appointments still occupy their slot. -->
   <select id="countBookedAppointments" resultType="int">
     SELECT COUNT(*) FROM appointments
-    WHERE doctor_id = #{doctorId} AND appointment_date = #{date} AND status = 'BOOKED'
+    WHERE doctor_id = #{doctorId} AND appointment_date = #{date} AND status &lt;&gt; 'CANCELLED'
   </select>
+
+  <select id="findActiveByRegistrationNumber" resultMap="doctorResultMap">
+    SELECT <include refid="doctorColumns"/>
+    FROM doctors WHERE registration_number = #{registrationNumber} AND is_active = 1
+  </select>
+
+  <select id="findByUserId" resultMap="doctorResultMap">
+    SELECT <include refid="doctorColumns"/>
+    FROM doctors WHERE user_id = #{userId}
+  </select>
+
+  <update id="linkUser">
+    UPDATE doctors SET user_id = #{userId} WHERE id = #{id}
+  </update>
 
 </mapper>

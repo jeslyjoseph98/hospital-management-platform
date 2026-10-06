@@ -21,9 +21,11 @@
     reporting_time, reason, status, created_at, updated_at
   </sql>
 
+  <!-- Matches uq_apt_patient's scope (any status): one booking per patient per doctor per day,
+       even after it's COMPLETED, so this fails cleanly instead of hitting the unique constraint. -->
   <select id="findActiveBooking" resultMap="appointmentResultMap">
     SELECT <include refid="columns"/> FROM appointments
-    WHERE patient_id = #{patientId} AND doctor_id = #{doctorId} AND appointment_date = #{date} AND status = 'BOOKED'
+    WHERE patient_id = #{patientId} AND doctor_id = #{doctorId} AND appointment_date = #{date} AND status &lt;&gt; 'CANCELLED'
   </select>
 
   <insert id="insert" parameterType="com.hms.appointment.model.Appointment" useGeneratedKeys="true" keyProperty="id">

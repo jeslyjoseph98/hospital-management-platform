@@ -34,8 +34,8 @@ public class DoctorService {
         departmentService.getActiveOrThrow(departmentId);
         return doctorMapper.findActiveByDepartment(departmentId).stream()
                 .map(doctor -> new DoctorWithTimingsResponse(
-                        doctor.getId(), doctor.getFullName(), doctor.getQualification(),
-                        doctor.getExperienceYears(), timings(doctor.getId())))
+                        doctor.getId(), doctor.getFullName(), doctor.getQualification(), doctor.getSpecialization(),
+                        doctor.getExperienceYears(), doctor.getConsultationFee(), doctor.getAbout(), timings(doctor.getId())))
                 .toList();
     }
 

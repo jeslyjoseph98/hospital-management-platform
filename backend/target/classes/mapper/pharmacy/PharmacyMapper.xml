@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hms.pharmacy.mapper.PharmacyMapper">
+
+  <!-- Records (no setters): MyBatis needs an explicit <constructor> binding by javaType. -->
+  <resultMap id="listItemMap" type="com.hms.pharmacy.dto.PrescriptionListItem">
+    <constructor>
+      <idArg column="consultationId" javaType="Long"/>
+      <arg column="appointmentCode" javaType="String"/>
+      <arg column="tokenNumber" javaType="_int"/>
+      <arg column="patientName" javaType="String"/>
+      <arg column="patientCode" javaType="String"/>
+      <arg column="doctorName" javaType="String"/>
+      <arg column="departmentName" javaType="String"/>
+      <arg column="completedAt" javaType="java.time.LocalDateTime"/>
+      <arg column="itemCount" javaType="_int"/>
+      <arg column="dispenseStatus" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <resultMap id="detailRowMap" type="com.hms.pharmacy.mapper.PharmacyMapper$DetailRow">
+    <constructor>
+      <idArg column="consultationId" javaType="Long"/>
+      <arg column="patientName" javaType="String"/>
+      <arg column="patientCode" javaType="String"/>
+      <arg column="age" javaType="_int"/>
+      <arg column="gender" javaType="String"/>
+      <arg column="doctorName" javaType="String"/>
+      <arg column="consultationDate" javaType="java.time.LocalDate"/>
+      <arg column="diagnosis" javaType="String"/>
+      <arg column="followUpDate" javaType="java.time.LocalDate"/>
+      <arg column="dispenseStatus" javaType="String"/>
+      <arg column="dispensedAt" javaType="java.time.LocalDateTime"/>
+      <arg column="dispensedByName" javaType="String"/>
+      <arg column="dispenseRemarks" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <sql id="listSelect">
+    SELECT c.id AS consultationId, a.appointment_code AS appointmentCode, a.token_number AS tokenNumber,
+           u.full_name AS patientName, p.patient_code AS patientCode,
+           doc.full_name AS doctorName, dept.dept_name AS departmentName,
+           c.completed_at AS completedAt,
+           (SELECT COUNT(*) FROM prescription_items pi WHERE pi.consultation_id = c.id) AS itemCount,
+           c.dispense_status AS dispenseStatus
+    FROM consultations c
+    JOIN appointments a ON a.id = c.appointment_id
+    JOIN patients p ON p.id = c.patient_id
+    JOIN users u ON u.id = p.user_id
+    JOIN doctors doc ON doc.id = c.doctor_id
+    JOIN departments dept ON dept.id = doc.department_id
+  </sql>
+
+  <select id="findPending" resultMap="listItemMap">
+    <include refid="listSelect"/>
+    WHERE c.status = 'COMPLETED' AND c.dispense_status = 'PENDING' AND DATE(c.completed_at) = #{date}
+    ORDER BY c.completed_at ASC
+  </select>
+
+  <select id="search" resultMap="listItemMap">
+    <include refid="listSelect"/>
+    WHERE c.dispense_status IN ('PENDING','DISPENSED')
+      AND c.completed_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+      AND (p.patient_code = #{q} OR u.phone = #{q} OR a.appointment_code = #{q})
+    ORDER BY c.completed_at DESC
+  </select>
+
+  <select id="findDetail" resultMap="detailRowMap">
+    SELECT c.id AS consultationId, u.full_name AS patientName, p.patient_code AS patientCode,
+           TIMESTAMPDIFF(YEAR, p.date_of_birth, CURDATE()) AS age, p.gender AS gender,
+           doc.full_name AS doctorName, a.appointment_date AS consultationDate,
+           c.diagnosis AS diagnosis, c.follow_up_date AS followUpDate,
+           c.dispense_status AS dispenseStatus, c.dispensed_at AS dispensedAt,
+           dispenser.full_name AS dispensedByName, c.dispense_remarks AS dispenseRemarks
+    FROM consultations c
+    JOIN appointments a ON a.id = c.appointment_id
+    JOIN patients p ON p.id = c.patient_id
+    JOIN users u ON u.id = p.user_id
+    JOIN doctors doc ON doc.id = c.doctor_id
+    LEFT JOIN users dispenser ON dispenser.id = c.dispensed_by
+    WHERE c.id = #{consultationId}
+  </select>
+
+  <update id="dispense">
+    UPDATE consultations
+    SET dispense_status = 'DISPENSED', dispensed_by = #{dispensedBy}, dispensed_at = NOW(), dispense_remarks = #{remarks}
+    WHERE id = #{id} AND dispense_status = 'PENDING'
+  </update>
+
+</mapper>

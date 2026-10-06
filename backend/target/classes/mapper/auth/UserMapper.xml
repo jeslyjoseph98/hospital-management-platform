@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hms.auth.mapper.UserMapper">
+
+  <resultMap id="userResultMap" type="com.hms.auth.model.User">
+    <id property="id" column="id"/>
+    <result property="fullName" column="full_name"/>
+    <result property="phone" column="phone"/>
+    <result property="email" column="email"/>
+    <result property="passwordHash" column="password_hash"/>
+    <result property="role" column="role"/>
+    <result property="active" column="is_active"/>
+    <result property="lastLoginAt" column="last_login_at"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+  </resultMap>
+
+  <sql id="columns">
+    id, full_name, phone, email, password_hash, role, is_active, last_login_at, created_at, updated_at
+  </sql>
+
+  <select id="findByPhone" resultMap="userResultMap">
+    SELECT <include refid="columns"/> FROM users WHERE phone = #{phone}
+  </select>
+
+  <select id="findByEmail" resultMap="userResultMap">
+    SELECT <include refid="columns"/> FROM users WHERE email = #{email}
+  </select>
+
+  <select id="findById" resultMap="userResultMap">
+    SELECT <include refid="columns"/> FROM users WHERE id = #{id}
+  </select>
+
+  <insert id="insert" parameterType="com.hms.auth.model.User" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO users (full_name, phone, email, password_hash, role, is_active)
+    VALUES (#{fullName}, #{phone}, #{email}, #{passwordHash}, #{role}, 1)
+  </insert>
+
+  <update id="updateLastLogin">
+    UPDATE users SET last_login_at = NOW() WHERE id = #{id}
+  </update>
+
+</mapper>
