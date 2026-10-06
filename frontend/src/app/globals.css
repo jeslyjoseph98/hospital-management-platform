@@ -78,6 +78,15 @@ body {
   box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.25);
 }
 
+.field-input.has-error {
+  border-color: #fb7185;
+}
+
+.field-input.has-error:focus {
+  border-color: #fb7185;
+  box-shadow: 0 0 0 3px rgba(251, 113, 133, 0.25);
+}
+
 .badge {
   display: inline-flex;
   align-items: center;

@@ -1,6 +1,6 @@
 # HMS Appointment Booking — 03 Appointment Booking
 
-Version: 1.0
+Version: 1.1
 Depends on: 01, 02
 
 ## 1. Purpose
@@ -24,7 +24,7 @@ CREATE TABLE appointments (
   updated_at        DATETIME     NULL ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_apt_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
   CONSTRAINT fk_apt_doctor  FOREIGN KEY (doctor_id)  REFERENCES doctors(id),
-  CONSTRAINT chk_apt_status CHECK (status IN ('BOOKED')),   -- more statuses added when cancel/consult are built
+  CONSTRAINT chk_apt_status CHECK (status IN ('BOOKED','COMPLETED')),   -- COMPLETED set by doctor (spec 06)
   CONSTRAINT chk_apt_token  CHECK (token_number >= 1),
   UNIQUE KEY uq_apt_token   (doctor_id, appointment_date, token_number),  -- no two patients get the same token
   UNIQUE KEY uq_apt_patient (patient_id, doctor_id, appointment_date),    -- one booking per patient per doctor per day
@@ -39,7 +39,7 @@ CREATE TABLE appointments (
 1. Validate request (rules APT-R1 to APT-R5)
 2. SELECT * FROM doctors WHERE id = ? FOR UPDATE           -- lock: bookings for this doctor wait in line
 3. SELECT COUNT(*) FROM appointments
-     WHERE doctor_id = ? AND appointment_date = ? AND status = 'BOOKED'
+     WHERE doctor_id = ? AND appointment_date = ? AND status <> 'CANCELLED'
 4. If count >= daily_limit  → APT_DOCTOR_FULLY_BOOKED
 5. token_number   = count + 1
 6. reporting_time = start_time + (token_number - 1) * minutesPerPatient
@@ -64,7 +64,7 @@ Example of step 6: window 10:00–13:00 = 180 min, limit 50 → 3 min per patien
 | APT-R4 | Doctor must have active availability on that day of week → `APT_DOCTOR_NOT_AVAILABLE`. |
 | APT-R5 | If date is today and current time ≥ doctor's `end_time` → `APT_BOOKING_CLOSED`. |
 | APT-R6 | If patient already has a BOOKED appointment with this doctor on this date → `APT_ALREADY_BOOKED` (also enforced by `uq_apt_patient`). |
-| APT-R7 | If BOOKED count for doctor + date ≥ `daily_limit` → `APT_DOCTOR_FULLY_BOOKED`. The date shows as FULLY_BOOKED in availability (spec 02). |
+| APT-R7 | If count of BOOKED + COMPLETED appointments for doctor + date ≥ `daily_limit` → `APT_DOCTOR_FULLY_BOOKED`. The date shows as FULLY_BOOKED in availability (spec 02). |
 | APT-R8 | Token = count + 1. Tokens are given in booking order. |
 | APT-R9 | On success, response includes token number, reporting time, doctor, department, date, and message "Booking successful". |
 | APT-R10 | A patient can see only their own appointments. Another patient's id → `APT_NOT_FOUND`. |

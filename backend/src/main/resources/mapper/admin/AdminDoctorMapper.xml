@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.hms.admin.mapper.AdminDoctorMapper">
+
+  <resultMap id="doctorResultMap" type="com.hms.department.model.Doctor">
+    <id property="id" column="id"/>
+    <result property="userId" column="user_id"/>
+    <result property="departmentId" column="department_id"/>
+    <result property="fullName" column="full_name"/>
+    <result property="qualification" column="qualification"/>
+    <result property="specialization" column="specialization"/>
+    <result property="registrationNumber" column="registration_number"/>
+    <result property="experienceYears" column="experience_years"/>
+    <result property="phone" column="phone"/>
+    <result property="email" column="email"/>
+    <result property="about" column="about"/>
+    <result property="consultationFee" column="consultation_fee"/>
+    <result property="dailyLimit" column="daily_limit"/>
+    <result property="active" column="is_active"/>
+    <result property="createdAt" column="created_at"/>
+    <result property="updatedAt" column="updated_at"/>
+    <result property="createdBy" column="created_by"/>
+    <result property="updatedBy" column="updated_by"/>
+  </resultMap>
+
+  <sql id="doctorColumns">
+    id, user_id, department_id, full_name, qualification, specialization, registration_number,
+    experience_years, phone, email, about, consultation_fee, daily_limit, is_active,
+    created_at, updated_at, created_by, updated_by
+  </sql>
+
+  <sql id="listFilters">
+    <where>
+      <if test="departmentId != null">AND department_id = #{departmentId}</if>
+      <if test="name != null and name != ''">AND full_name LIKE CONCAT('%', #{name}, '%')</if>
+      <if test="active != null">AND is_active = #{active}</if>
+    </where>
+  </sql>
+
+  <select id="findAll" resultMap="doctorResultMap">
+    SELECT <include refid="doctorColumns"/> FROM doctors
+    <include refid="listFilters"/>
+    ORDER BY full_name
+    LIMIT #{limit} OFFSET #{offset}
+  </select>
+
+  <select id="countAll" resultType="long">
+    SELECT COUNT(*) FROM doctors
+    <include refid="listFilters"/>
+  </select>
+
+  <select id="findById" resultMap="doctorResultMap">
+    SELECT <include refid="doctorColumns"/> FROM doctors WHERE id = #{id}
+  </select>
+
+  <select id="existsByRegistrationNumber" resultType="boolean">
+    SELECT COUNT(*) > 0 FROM doctors
+    WHERE registration_number = #{registrationNumber}
+    <if test="excludeId != null">AND id != #{excludeId}</if>
+  </select>
+
+  <insert id="insert" parameterType="com.hms.department.model.Doctor" useGeneratedKeys="true" keyProperty="id">
+    INSERT INTO doctors (department_id, full_name, qualification, specialization, registration_number,
+                          experience_years, phone, email, about, consultation_fee, daily_limit, is_active,
+                          created_by, updated_by)
+    VALUES (#{departmentId}, #{fullName}, #{qualification}, #{specialization}, #{registrationNumber},
+            #{experienceYears}, #{phone}, #{email}, #{about}, #{consultationFee}, #{dailyLimit}, 1,
+            #{createdBy}, #{createdBy})
+  </insert>
+
+  <update id="update" parameterType="com.hms.department.model.Doctor">
+    UPDATE doctors SET
+      department_id = #{departmentId}, full_name = #{fullName}, qualification = #{qualification},
+      specialization = #{specialization}, registration_number = #{registrationNumber},
+      experience_years = #{experienceYears}, phone = #{phone}, email = #{email}, about = #{about},
+      consultation_fee = #{consultationFee}, daily_limit = #{dailyLimit}, updated_by = #{updatedBy}
+    WHERE id = #{id}
+  </update>
+
+  <update id="updateStatus">
+    UPDATE doctors SET is_active = #{active}, updated_by = #{updatedBy} WHERE id = #{id}
+  </update>
+
+  <delete id="deleteAvailability">
+    DELETE FROM doctor_availability WHERE doctor_id = #{doctorId}
+  </delete>
+
+  <insert id="insertAvailability" parameterType="com.hms.department.model.DoctorAvailability">
+    INSERT INTO doctor_availability (doctor_id, day_of_week, start_time, end_time, is_active, created_by, updated_by)
+    VALUES (#{doctorId}, #{dayOfWeek}, #{startTime}, #{endTime}, 1, #{createdBy}, #{createdBy})
+  </insert>
+
+  <!-- Both targets below are records: use explicit <constructor> bindings, not resultType
+       auto-mapping, so field order in the SELECT can't silently mismatch the constructor. -->
+  <resultMap id="affectedDateResultMap" type="com.hms.admin.dto.AffectedDate">
+    <constructor>
+      <arg column="date" javaType="java.time.LocalDate"/>
+      <arg column="booked" javaType="_int"/>
+    </constructor>
+  </resultMap>
+
+  <select id="findFutureBookedCounts" resultMap="affectedDateResultMap">
+    SELECT appointment_date AS date, COUNT(*) AS booked
+    FROM appointments
+    WHERE doctor_id = #{doctorId} AND appointment_date &gt;= CURDATE() AND status = 'BOOKED'
+    GROUP BY appointment_date
+  </select>
+
+  <resultMap id="tokenEntryResultMap" type="com.hms.admin.dto.DoctorBookingsResponse$TokenEntry">
+    <constructor>
+      <arg column="tokenNumber" javaType="_int"/>
+      <arg column="patientName" javaType="String"/>
+      <arg column="patientCode" javaType="String"/>
+      <arg column="reportingTime" javaType="java.time.LocalTime"/>
+      <arg column="status" javaType="String"/>
+    </constructor>
+  </resultMap>
+
+  <select id="findBookingsForDate" resultMap="tokenEntryResultMap">
+    SELECT a.token_number AS tokenNumber,
+           u.full_name AS patientName,
+           p.patient_code AS patientCode,
+           a.reporting_time AS reportingTime,
+           a.status AS status
+    FROM appointments a
+    JOIN patients p ON p.id = a.patient_id
+    JOIN users u ON u.id = p.user_id
+    WHERE a.doctor_id = #{doctorId} AND a.appointment_date = #{date}
+    ORDER BY a.token_number
+  </select>
+
+</mapper>

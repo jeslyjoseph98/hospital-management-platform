@@ -24,4 +24,13 @@ public interface DoctorMapper {
                                                                @Param("dayOfWeek") int dayOfWeek);
 
     int countBookedAppointments(@Param("doctorId") Long doctorId, @Param("date") LocalDate date);
+
+    /** REG-R11: doctor self-registration looks the profile up by registration number. */
+    Optional<Doctor> findActiveByRegistrationNumber(@Param("registrationNumber") String registrationNumber);
+
+    /** Login (spec 01 LOG-R2/LOG-R3): resolve the doctor linked to this user, active or not. */
+    Optional<Doctor> findByUserId(@Param("userId") Long userId);
+
+    /** REG-R13: link the newly created user account to the doctor profile. */
+    void linkUser(@Param("id") Long id, @Param("userId") Long userId);
 }

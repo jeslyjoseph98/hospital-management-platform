@@ -34,3 +34,5 @@ hms:
     expiration-seconds: 3600
   cors:
     allowed-origins: ${CORS_ORIGINS:http://localhost:3000}
+  admin-registration-code: ${ADMIN_REGISTRATION_CODE:HMS-ADMIN-2026}
+  pharmacy-registration-code: ${PHARMACY_REGISTRATION_CODE:HMS-PHARMACY-2026}

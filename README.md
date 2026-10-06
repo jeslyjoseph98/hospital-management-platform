@@ -1,9 +1,16 @@
 # Hospital Management Platform — Appointment Booking
 
-A patient-facing appointment booking system: register, log in, pick a department, pick a doctor,
-pick an available date, and book — instantly getting a token number and estimated reporting time.
+An appointment booking system with two portals:
 
-- **Backend**: Java 17, Spring Boot 3.5, Spring Security (JWT), MyBatis, MySQL 8, Flyway
+- **Patient portal**: register, log in, pick a department, pick a doctor, pick an available date,
+  and book — instantly getting a token number and estimated reporting time.
+- **Admin portal** (`/admin`): manage departments, doctor profiles (qualification, specialization,
+  registration number, consultation fee) and weekly consultation timings. Changes that would break
+  an already-booked appointment (lowering the daily limit below existing bookings, removing/moving a
+  day with future bookings, deactivating a doctor with future bookings) are blocked with the list of
+  affected dates.
+
+- **Backend**: Java 17, Spring Boot 3.5, Spring Security (JWT, role-based: `PATIENT` / `ADMIN`), MyBatis, MySQL 8, Flyway
 - **Frontend**: Next.js (App Router) + TypeScript + Tailwind CSS
 - **Specs**: see [`spec_details/`](spec_details/) for the full module specifications this app implements
 
@@ -20,14 +27,19 @@ previous to be healthy):
 
 | Service | URL |
 |---|---|
-| Frontend | http://localhost:3000 |
+| Frontend (patient portal) | http://localhost:3000 |
+| Admin portal | http://localhost:3000/admin/login |
 | Backend API | http://localhost:8080/api/v1 |
 | API docs (Swagger UI) | http://localhost:8080/swagger-ui.html |
 | Backend health | http://localhost:8080/actuator/health |
 | MySQL | localhost:3306 |
 
 Open http://localhost:3000, register a new patient, and book an appointment. Departments and
-doctors are pre-seeded (see `backend/src/main/resources/db/migration/V2__seed_departments_doctors.sql`).
+doctors are pre-seeded (see `backend/src/main/resources/db/migration/V2__seed_departments_doctors.sql`)
+and can be further managed from the admin portal.
+
+**Admin login**: username `admin`, temporary password `Admin@123` (seeded by
+`V3__seed_admin.sql`). You'll be forced to change it on first login.
 
 To customize ports/credentials, copy `.env.example` to `.env` and edit it — `docker compose` picks
 it up automatically:

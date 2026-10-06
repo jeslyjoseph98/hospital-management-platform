@@ -1,10 +1,12 @@
 # HMS Appointment Booking — 02 Departments, Doctors and Availability
 
-Version: 1.0
+Version: 1.1
 
 ## 1. Purpose
 
 List departments, list doctors in a department, and show on which dates a doctor is available and how many of the 50 daily appointments are left.
+
+The data in these tables is entered by the admin (spec 05). This spec covers the tables and the patient-facing read APIs.
 
 ## 2. Tables
 
@@ -21,15 +23,23 @@ CREATE TABLE departments (
 CREATE TABLE doctors (
   id                BIGINT AUTO_INCREMENT PRIMARY KEY,
   department_id     BIGINT       NOT NULL,
-  full_name         VARCHAR(100) NOT NULL,
-  qualification     VARCHAR(150) NOT NULL,
-  experience_years  INT          NOT NULL DEFAULT 0,
-  daily_limit       INT          NOT NULL DEFAULT 50,   -- max appointments per day
+  full_name            VARCHAR(100)  NOT NULL,
+  qualification        VARCHAR(150)  NOT NULL,        -- MBBS, MD (Cardiology)
+  specialization       VARCHAR(100)  NOT NULL,        -- Cardiologist
+  registration_number  VARCHAR(50)   NOT NULL UNIQUE, -- medical council registration no.
+  experience_years     INT           NOT NULL DEFAULT 0,
+  phone                VARCHAR(15)   NULL,
+  email                VARCHAR(100)  NULL,
+  about                VARCHAR(1000) NULL,            -- short profile shown to patients
+  consultation_fee     DECIMAL(10,2) NOT NULL DEFAULT 0,  -- display only, no payment module
+  daily_limit          INT           NOT NULL DEFAULT 50, -- max appointments per day
   is_active         TINYINT(1)   NOT NULL DEFAULT 1,
   created_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        DATETIME     NULL ON UPDATE CURRENT_TIMESTAMP,
   CONSTRAINT fk_doc_dept FOREIGN KEY (department_id) REFERENCES departments(id),
   CONSTRAINT chk_doc_limit CHECK (daily_limit BETWEEN 1 AND 200),
+  CONSTRAINT chk_doc_fee   CHECK (consultation_fee >= 0),
+  CONSTRAINT chk_doc_exp   CHECK (experience_years BETWEEN 0 AND 70),
   INDEX idx_doc_dept (department_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -97,7 +107,10 @@ GET /api/v1/departments/2/doctors
       "id": 3,
       "fullName": "Dr. Rahul Menon",
       "qualification": "MBBS, MD (Cardiology)",
+      "specialization": "Cardiologist",
       "experienceYears": 12,
+      "consultationFee": 500.00,
+      "about": "Interventional cardiologist with 12 years of experience.",
       "timings": [
         { "day": "MONDAY",    "startTime": "10:00", "endTime": "13:00" },
         { "day": "WEDNESDAY", "startTime": "14:00", "endTime": "17:00" },
@@ -127,19 +140,9 @@ GET /api/v1/doctors/3/availability
 }
 ```
 
-## 6. Seed Data Example
+## 6. Data Entry
 
-```sql
-INSERT INTO departments (dept_name) VALUES ('General Medicine'), ('Cardiology'), ('Orthopaedics');
-
-INSERT INTO doctors (department_id, full_name, qualification, experience_years)
-VALUES (2, 'Dr. Rahul Menon', 'MBBS, MD (Cardiology)', 12);
-
-INSERT INTO doctor_availability (doctor_id, day_of_week, start_time, end_time) VALUES
-(1, 1, '10:00', '13:00'),
-(1, 3, '14:00', '17:00'),
-(1, 5, '10:00', '13:00');
-```
+Departments, doctors and timings are created by the admin (spec 05). Patients never see `registration_number`, `phone` or `email` of doctors.
 
 ## 7. Error Codes
 

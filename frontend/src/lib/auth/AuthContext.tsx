@@ -1,20 +1,22 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { PatientSummary } from "@/lib/api/types";
+import { me as fetchMe } from "@/lib/api/auth";
+import { TOKEN_STORAGE_KEY as STORAGE_KEY } from "@/lib/auth/storage";
+import type { UserSummary } from "@/lib/api/types";
 
-const STORAGE_KEY = "hms.auth";
-
-interface StoredAuth {
-  token: string;
-  patient: PatientSummary;
+export function homeFor(role: UserSummary["role"] | undefined) {
+  if (role === "ADMIN") return "/admin/doctors";
+  if (role === "DOCTOR") return "/doctor/today";
+  if (role === "PHARMACIST") return "/pharmacy/prescriptions";
+  return "/patient/book-appointment";
 }
 
 interface AuthContextValue {
   token: string | null;
-  patient: PatientSummary | null;
+  user: UserSummary | null;
   isLoading: boolean;
-  login: (auth: StoredAuth) => void;
+  login: (token: string, user: UserSummary) => void;
   logout: () => void;
 }
 
@@ -22,40 +24,45 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
-  const [patient, setPatient] = useState<PatientSummary | null>(null);
+  const [user, setUser] = useState<UserSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw) as StoredAuth;
-        setToken(parsed.token);
-        setPatient(parsed.patient);
-      } catch {
-        window.localStorage.removeItem(STORAGE_KEY);
-      }
+    const storedToken = window.localStorage.getItem(STORAGE_KEY);
+    if (!storedToken) {
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+    // UI-R5 / restoring a session on refresh: ask the backend who this token belongs to
+    // rather than trusting a cached user object — catches expired/deactivated accounts too.
+    fetchMe(storedToken)
+      .then((freshUser) => {
+        setToken(storedToken);
+        setUser(freshUser);
+      })
+      .catch(() => {
+        window.localStorage.removeItem(STORAGE_KEY);
+      })
+      .finally(() => setIsLoading(false));
   }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
       token,
-      patient,
+      user,
       isLoading,
-      login: (auth) => {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(auth));
-        setToken(auth.token);
-        setPatient(auth.patient);
+      login: (newToken, newUser) => {
+        window.localStorage.setItem(STORAGE_KEY, newToken);
+        setToken(newToken);
+        setUser(newUser);
       },
       logout: () => {
         window.localStorage.removeItem(STORAGE_KEY);
         setToken(null);
-        setPatient(null);
+        setUser(null);
       },
     }),
-    [token, patient, isLoading],
+    [token, user, isLoading],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

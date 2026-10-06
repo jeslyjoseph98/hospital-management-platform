@@ -11,4 +11,6 @@ public class DoctorAvailability {
     private LocalTime startTime;
     private LocalTime endTime;
     private boolean active;
+    private Long createdBy;
+    private Long updatedBy;
 }

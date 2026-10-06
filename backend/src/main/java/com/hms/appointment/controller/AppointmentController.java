@@ -6,6 +6,8 @@ import com.hms.appointment.dto.BookResponse;
 import com.hms.appointment.service.AppointmentService;
 import com.hms.common.security.CurrentPatient;
 import com.hms.common.web.ApiResponse;
+import com.hms.doctor.dto.PatientConsultationResponse;
+import com.hms.doctor.service.DoctorPortalService;
 import jakarta.validation.Valid;
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -23,9 +25,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AppointmentController {
 
     private final AppointmentService appointmentService;
+    private final DoctorPortalService doctorPortalService;
 
-    public AppointmentController(AppointmentService appointmentService) {
+    public AppointmentController(AppointmentService appointmentService, DoctorPortalService doctorPortalService) {
         this.appointmentService = appointmentService;
+        this.doctorPortalService = doctorPortalService;
     }
 
     @PostMapping
@@ -42,5 +46,10 @@ public class AppointmentController {
     @GetMapping("/{id}")
     public ApiResponse<AppointmentSummaryResponse> detail(@PathVariable Long id) {
         return ApiResponse.ok(appointmentService.getMyAppointment(CurrentPatient.id(), id));
+    }
+
+    @GetMapping("/{id}/consultation")
+    public ApiResponse<PatientConsultationResponse> consultation(@PathVariable Long id) {
+        return ApiResponse.ok(doctorPortalService.getForPatient(CurrentPatient.id(), id));
     }
 }

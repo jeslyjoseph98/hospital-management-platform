@@ -8,9 +8,7 @@ import org.apache.ibatis.annotations.Param;
 @Mapper
 public interface PatientMapper {
 
-    Optional<Patient> findByPhone(@Param("phone") String phone);
-
-    Optional<Patient> findByEmail(@Param("email") String email);
+    Optional<Patient> findByUserId(@Param("userId") Long userId);
 
     Optional<Patient> findById(@Param("id") Long id);
 

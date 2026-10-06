@@ -5,8 +5,7 @@ import java.time.LocalDate;
 public record PatientProfileResponse(
         Long id,
         String patientCode,
-        String firstName,
-        String lastName,
+        String fullName,
         LocalDate dateOfBirth,
         String gender,
         String phone,

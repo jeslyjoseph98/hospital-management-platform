@@ -23,33 +23,49 @@ public class JwtService {
         this.expirationSeconds = expirationSeconds;
     }
 
-    public String generateToken(Long patientId, String name, String patientCode) {
+    /**
+     * LOG-R3: sub = user id, role, name, patientId/patientCode only if role = PATIENT,
+     * doctorId only if role = DOCTOR.
+     */
+    public String generateToken(Long userId, String role, String name, Long patientId, String patientCode, Long doctorId) {
         Instant now = Instant.now();
-        return Jwts.builder()
-                .subject(String.valueOf(patientId))
+        var builder = Jwts.builder()
+                .subject(String.valueOf(userId))
+                .claim("role", role)
                 .claim("name", name)
-                .claim("patientCode", patientCode)
                 .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plusSeconds(expirationSeconds)))
-                .signWith(key)
-                .compact();
+                .expiration(Date.from(now.plusSeconds(expirationSeconds)));
+        if (patientId != null) {
+            builder.claim("patientId", patientId).claim("patientCode", patientCode);
+        }
+        if (doctorId != null) {
+            builder.claim("doctorId", doctorId);
+        }
+        return builder.signWith(key).compact();
     }
 
     public long getExpirationSeconds() {
         return expirationSeconds;
     }
 
-    public AuthenticatedPatient parseToken(String token) {
+    public AuthenticatedUser parseToken(String token) {
         try {
             Claims claims = Jwts.parser()
                     .verifyWith((javax.crypto.SecretKey) key)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
-            Long patientId = Long.valueOf(claims.getSubject());
+            Long userId = Long.valueOf(claims.getSubject());
+            String role = claims.get("role", String.class);
             String name = claims.get("name", String.class);
+            // Numeric claims round-trip through JSON as Integer when small, so widen via Number
+            // rather than requesting Long.class directly (which throws on an Integer value).
+            Number patientIdClaim = claims.get("patientId", Number.class);
+            Long patientId = patientIdClaim == null ? null : patientIdClaim.longValue();
             String patientCode = claims.get("patientCode", String.class);
-            return new AuthenticatedPatient(patientId, name, patientCode);
+            Number doctorIdClaim = claims.get("doctorId", Number.class);
+            Long doctorId = doctorIdClaim == null ? null : doctorIdClaim.longValue();
+            return new AuthenticatedUser(userId, role, name, patientId, patientCode, doctorId);
         } catch (JwtException | IllegalArgumentException ex) {
             throw new JwtException("Invalid or expired token", ex);
         }

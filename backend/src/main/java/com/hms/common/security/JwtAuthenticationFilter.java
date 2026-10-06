@@ -30,9 +30,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (header != null && header.startsWith("Bearer ")) {
             String token = header.substring(7);
             try {
-                AuthenticatedPatient patient = jwtService.parseToken(token);
+                AuthenticatedUser user = jwtService.parseToken(token);
                 var authentication = new UsernamePasswordAuthenticationToken(
-                        patient, null, List.of(new SimpleGrantedAuthority("ROLE_PATIENT")));
+                        user, null, List.of(new SimpleGrantedAuthority("ROLE_" + user.role())));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception ex) {
                 SecurityContextHolder.clearContext();
